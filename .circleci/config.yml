@@ -314,7 +314,7 @@ jobs:
   #     - destroy-environment
   #     - revert-migrations
 
-  deploy-frontend:
+   deploy-frontend:
     docker:
       - image: cimg/base:stable
     steps:
@@ -404,56 +404,6 @@ jobs:
       - destroy-environment
       - revert-migrations
 
-    #   - image: cimg/base:stable
-    # steps:
-    #   - checkout
-    #   - install_aws_cli
-    #   - install_ansible
-    #   - install_nodejs
-    #   - add_ssh_keys:
-    #       fingerprints: ["2d:98:e4:d6:17:58:03:eb:21:e4:21:18:a3:fe:17:b8"]
-    #   - attach_workspace:
-    #       at: ~/
-    #   - restore_cache:
-    #       keys: [backend-deps]
-    #   - run:
-    #       name: Install dependencies
-    #       command: |
-    #         cd backend
-    #         npm install
-    #   - run:
-    #       name: Package backend
-    #       command: |
-    #         cd backend
-    #         export TYPEORM_MIGRATIONS_DIR=./dist/migrations
-    #         export TYPEORM_ENTITIES=./dist/modules/domain/**/*.entity{.ts,.js}
-    #         export TYPEORM_MIGRATIONS=./dist/migrations/*{.ts,.js}
-    #         echo "TYPEORM_ENTITIES=${TYPEORM_ENTITIES}" > .env
-    #         echo "TYPEORM_HOST=${TYPEORM_HOST}" >> .env
-    #         echo "TYPEORM_PORT=${TYPEORM_PORT}" >> .env
-    #         echo "TYPEORM_USERNAME=${TYPEORM_USERNAME}" >> .env
-    #         echo "TYPEORM_PASSWORD=${TYPEORM_PASSWORD}" >> .env
-    #         echo "TYPEORM_DATABASE=${TYPEORM_DATABASE}" >> .env
-    #         echo "TYPEORM_MIGRATIONS_DIR=./dist/migrations" >> .env
-    #         echo "TYPEORM_MIGRATIONS=./dist/migrations/*.ts" >> .env
-    #         npm run build
-    #         tar czf artifacts.tar.gz dist/* package* .env
-    #         cd ..
-    #         cp backend/artifacts.tar.gz .circleci/ansible/roles/deploy/files
-    #   - run:
-    #       name: Deploy backend
-    #       command: |
-    #         # cd backend
-    #         export TYPEORM_MIGRATIONS_DIR=./dist/migrations
-    #         export TYPEORM_ENTITIES=./dist/modules/domain/**/*.entity{.ts,.js}
-    #         export TYPEORM_MIGRATIONS=./dist/migrations/*{.ts,.js}
-    #         cd ..
-    #         cd .circleci/ansible
-    #         cat inventory.txt
-    #         ansible-playbook -i inventory.txt deploy-backend.yml
-    #   - destroy-environment
-    #   - revert-migrations
-
   smoke-test:
     docker:
       - image: cimg/base:stable
@@ -466,10 +416,9 @@ jobs:
           command: |
             # Get Backend URL
             BACKEND_PUBLIC_IP=$(aws ec2 describe-instances \
-              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --output text)
-
+            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --output text)
             export API_URL="http://${BACKEND_PUBLIC_IP}:3030"
             # Run the check
             if curl $API_URL/api/status | grep ok
@@ -477,18 +426,18 @@ jobs:
               exit 0
             else
               exit 1
+              
             fi
-
       - run:
           name: Frontend smoke test.
           command: |
             FRONTEND_WEBSITE=http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-${AWS_DEFAULT_REGION}.amazonaws.com
-            # echo $FRONTEND_WEBSITE
+            echo $FRONTEND_WEBSITE
             if curl -s $FRONTEND_WEBSITE | grep Welcome
             then
-              exit 0
-            else
               exit 1
+            else
+              exit 2
             fi
       - destroy-environment
       - revert-migrations
@@ -531,13 +480,11 @@ jobs:
               # First: Get old stack workflow id
               export OldWorkflowID=$(curl --insecure https://kvdb.io/${KVDB_BUCKET}/old_workflow_id)
               echo "Old workflow ID: $OldWorkflowID"
-
               # Then: Get stacks list
               export STACKS=($(aws cloudformation list-stacks \
               --query "StackSummaries[*].StackName" \
               --stack-status-filter CREATE_COMPLETE --no-paginate --output text))
               echo Stacks list: "${STACKS[@]}"
-
               # Finally: Remove old stacks
               if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
               then
@@ -545,7 +492,6 @@ jobs:
                 aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
                 aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
               fi
-
   notify_on_success:
     docker:
       - image: cimg/base:stable
@@ -555,35 +501,42 @@ jobs:
           channel: cicd-udacity-project
           template: success_tagged_deploy_1
 
-workflows:
+workflows:  # create workflows
   default:
     jobs:
       # - build-frontend
       # - build-backend
       # - test-frontend:
-      #     requires: [build-frontend]
+      #    requires: [build-frontend]
       # - test-backend:
-      #     requires: [build-backend]
+      #    requires: [build-backend]
       # - scan-backend:
       #     requires: [build-backend]
       # - scan-frontend:
       #     requires: [build-frontend]
-      # - deploy-infrastructure:
-      #     requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-      #     filters:
-      #       branches: 
-      #         only: [master]
-      # - configure-infrastructure:
-      #     requires: [deploy-infrastructure]
-      # - run-migrations:
-      #     requires: [configure-infrastructure]
-      # - deploy-frontend
-          # requires: [deploy-infrastructure]
-      # - deploy-backend
-          # requires: [run-migrations]
-      - smoke-test
-          # requires: [deploy-backend, deploy-frontend]
-      # - cloudfront-update:
-      #     requires: [smoke-test]
+      # - notify_on_success:
+      #    requires:
+      #    - test-frontend
+      #    - test-backend
+      #    - scan-frontend
+      #    - scan-backend    
+
+      - deploy-infrastructure:
+          # requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          filters:
+            branches:
+              only: [master]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
+      - deploy-frontend:
+          requires: [deploy-infrastructure]
+      - deploy-backend:
+          requires: [run-migrations]
+      - smoke-test:
+          requires: [deploy-backend, deploy-frontend]
+      - cloudfront-update:
+          requires: [smoke-test]
       # - cleanup:
       #     requires: [cloudfront-update]
