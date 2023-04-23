@@ -545,11 +545,11 @@ smoke-test:
       - notify_on_failure
       - destroy_environment
       - revert-migrations
-
-  cloudfront-update:
+      
+cloudfront-update:
     docker:
       - image: mareimorsy/aws-node
-    steps:
+        steps:
       - checkout
       - run:
           name: Save Old Workflow ID to kvdb.io
