@@ -426,7 +426,7 @@ jobs:
               exit 0
             else
               exit 1
-             
+              
             fi
       - run:
           name: Frontend smoke test.
@@ -439,6 +439,7 @@ jobs:
             else
               exit 1
             fi
+            
       - destroy-environment
       - revert-migrations
 
