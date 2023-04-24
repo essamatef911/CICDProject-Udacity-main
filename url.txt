@@ -1,8 +1,11 @@
 1. Public Url to GitHub repository (not private) 
-https://github.com/essamatef911/CICDProject-Udacity-main.git
-2. Public URL for your S3 Bucket (aka, your green candidate front-end) 
-http://udapeople-c63ecd8.s3-website-us-east-1.amazonaws.com/#/employees3.
+https://github.com/essamatef911/CICDProject-Udacity-main
 
-http://udapeople-0d28deb.s3-website-us-east-1.amazonaws.com/#/employees (URL03)
+2. Public URL for your S3 Bucket (aka, your green candidate front-end) 
+http://udapeople-0352aa7.s3-website-us-east-1.amazonaws.com/#/employees3.
+
+3. cloudfront
+https://d3ci4fs9ho1qnh.cloudfront.net/#/employees 
+
 
 
